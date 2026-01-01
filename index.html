@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="style.css">
     
     <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
 </head>
 <body>
 
@@ -61,8 +62,13 @@
                 <input type="date" id="inpDate" required>
             </div>
             <div class="form-group">
-                <label>Shift (A, B, or C)</label>
-                <input type="text" id="inpShift" placeholder="e.g. A-Shift" required>
+                <label>Shift</label>
+                <select id="inpShift" required>
+                    <option value="" disabled selected>Select Shift</option>
+                    <option value="A-Shift">A-Shift</option>
+                    <option value="B-Shift">B-Shift</option>
+                    <option value="C-Shift">C-Shift</option>
+                </select>
             </div>
             <div class="form-group">
                 <label>Amount ($)</label>
