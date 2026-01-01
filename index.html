@@ -3,89 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Station Super Fund (Cloud)</title>
+    <title>FireOps Tracker V3 (Cloud)</title>
     
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Station Super Fund","short_name":"StationFund","start_url":".","display":"standalone","background_color":"#f1f5f9","theme_color":"#b91c1c","orientation":"portrait","icons":[{"src":"https://placehold.co/192x192/b91c1c/ffffff.png?text=SF","sizes":"192x192","type":"image/png"},{"src":"https://placehold.co/512x512/b91c1c/ffffff.png?text=Station+Fund","sizes":"512x512","type":"image/png"}]}'>
-    
+    <meta name="theme-color" content="#b71c1c">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="StationFund">
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/b91c1c/ffffff.png?text=SF">
-    <meta name="theme-color" content="#b91c1c">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
     <style>
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        .select-none { user-select: none; -webkit-user-select: none; }
-        .active-scale:active { transform: scale(0.95); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        :root {
+            --fire-red: #b71c1c;
+            --gold: #ffc107;
+            --charcoal: #212121;
+            --white: #ffffff;
+            --light-gray: #f5f5f5;
+        }
+
+        body { font-family: sans-serif; background-color: var(--light-gray); margin: 0; padding-bottom: 50px; }
+
+        header { background: var(--fire-red); color: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--gold); }
+        header h1 { margin: 0; font-size: 1.4rem; text-transform: uppercase; }
+
+        .container { max-width: 600px; margin: 15px auto; padding: 0 15px; }
+
+        .card { background: var(--white); border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; font-size: 1.1rem; color: var(--charcoal); border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
+
+        /* Inputs */
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
+
+        /* Dashboard Stats */
+        .stats-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .stat-box { flex: 1; background: var(--charcoal); color: var(--gold); padding: 15px; border-radius: 6px; text-align: center; }
+        .stat-val { display: block; font-size: 1.5rem; font-weight: bold; }
+        .stat-lbl { font-size: 0.75rem; text-transform: uppercase; color: white; opacity: 0.8; }
+
+        /* Buttons */
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 8px; text-transform: uppercase; }
+        .btn-add { background: var(--fire-red); color: white; }
+        .btn-add:disabled { background: #e57373; cursor: not-allowed; } /* Loading state */
+        .btn-undo { background: var(--gold); color: black; }
+        .btn-csv { background: var(--charcoal); color: white; }
+        .btn-reset { background: transparent; border: 2px solid var(--fire-red); color: var(--fire-red); margin-top: 10px; }
+
+        /* Table */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; background: #eee; padding: 8px; border-bottom: 2px solid #ddd; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+
+        /* Status Bar */
+        #statusMsg { text-align: center; font-size: 0.8rem; margin-bottom: 10px; min-height: 1.2em; font-weight: bold; }
+        .status-syncing { color: var(--gold); }
+        .status-success { color: green; }
+        .status-error { color: red; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-900 select-none h-screen flex flex-col overflow-hidden">
+<body>
 
-    <div id="app" class="flex-1 flex flex-col h-full overflow-hidden">
-        <header class="bg-red-700 text-white shadow-lg z-40 shrink-0 pt-safe-top">
-            <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="bg-white/20 p-2 rounded-lg">
-                        <i data-lucide="coffee" class="h-6 w-6 text-white"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold tracking-tight">Station Fund</h1>
-                        <p class="text-xs text-red-100 font-medium opacity-80 flex items-center gap-1">
-                            <span id="connectionStatus" class="w-2 h-2 rounded-full bg-yellow-400"></span> GOOGLE CLOUD
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center bg-red-800/50 rounded-lg px-2 py-1 border border-red-600">
-                    <button id="prevMonth" class="p-1 hover:bg-red-600 rounded active-scale">
-                        <i data-lucide="chevron-left" class="h-5 w-5"></i>
-                    </button>
-                    <span id="currentMonthDisplay" class="mx-3 font-semibold min-w-[100px] text-center text-sm">Loading...</span>
-                    <button id="nextMonth" class="p-1 hover:bg-red-600 rounded active-scale">
-                        <i data-lucide="chevron-right" class="h-5 w-5"></i>
-                    </button>
-                </div>
-            </div>
-        </header>
+<header>
+    <h1>FireOps Log V3</h1>
+</header>
 
-        <div class="flex-1 flex overflow-hidden max-w-5xl mx-auto w-full relative">
-            
-            <aside class="hidden md:flex w-64 flex-col border-r border-slate-200 bg-white h-full shrink-0">
-                <nav class="flex-1 p-4 space-y-2">
-                    <button onclick="window.appState.setTab('dashboard')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="dashboard">
-                        <i data-lucide="bar-chart-3" class="w-5 h-5"></i> Dashboard
-                    </button>
-                    <button onclick="window.appState.setTab('payments')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="payments">
-                        <i data-lucide="dollar-sign" class="w-5 h-5"></i> Log Payments
-                    </button>
-                    <button onclick="window.appState.setTab('analytics')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="analytics">
-                        <i data-lucide="file-text" class="w-5 h-5"></i> Reports
-                    </button>
-                    <button onclick="window.appState.setTab('roster')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="roster">
-                        <i data-lucide="users" class="w-5 h-5"></i> Manage Roster
-                    </button>
-                    <button onclick="loadData()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-blue-600 hover:bg-blue-50 mt-4">
-                        <i data-lucide="refresh-cw" class="w-5 h-5"></i> Refresh Data
-                    </button>
-                </nav>
-            </aside>
+<div class="container">
 
-            <main id="mainContent" class="flex-1 overflow-y-auto p-4 pb-24 md:pb-4 select-text no-scrollbar relative">
-                <div id="loadingOverlay" class="absolute inset-0 bg-slate-100/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
-                    <div class="flex flex-col items-center">
-                        <i data-lucide="loader-2" class="w-10 h-10 text-red-600 spinner"></i>
-                        <p class="text-sm font-semibold text-slate-500 mt-2">Syncing...</p>
-                    </div>
-                </div>
-                <div id="contentBody"></div>
-            </main>
+    <div class="stats-row">
+        <div class="stat-box">
+            <span class="stat-val" id="dispAmount">$0.00</span>
+            <span class="stat-lbl">Total</span>
         </div>
+        <div class="stat-box">
+            <span class="stat-val" id="dispCount">0</span>
+            <span class="stat-lbl">Shifts</span>
+        </div>
+    </div>
 
-        <nav class="md:hidden bg-white border-t border-slate-200 pb-safe fixed bottom-0 w-full z-40 flex justify-around items-center px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            <button onclick="window.appState.setTab('dashboard')" class="nav-btn-mobile flex flex-col items-center justify-center w
+    <div id="statusMsg"></div>
+
+    <div class="card">
+        <h2>New Entry</h2>
+        <form id="entryForm">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="inpName" placeholder="Name" required>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="inpDate" required>
+            </div>
+            <div class="form-group">
+                <label>Shift</label>
+                <input type="text" id="inpShift" placeholder="Shift" required>
+            </div>
+            <div class="form-group">
+                <label>Amount ($)</label>
+                <input type="number" id="inpAmount" step="0.01" placeholder="0.00" required>
+            </div>
+            <button type="submit" id="submitBtn" class="btn btn-add">Add Entry</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Actions</h2>
+        <button type="button" id="btnUndo" class="btn btn-undo">Undo Last Local</button>
+        <button type="button" id="btnCsv" class="btn btn-csv">Download CSV</button>
+        <button type="button" id="btnReset" class="btn btn-reset">Master Reset</button>
+    </div>
+
+    <div class="card">
+        <h2>History (Local)</h2>
+        <div class="table-wrap">
+            <table id="logTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Shift</th>
+                        <th>$</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ---------------------------------------------------------
+    // ⚠️ PASTE YOUR GOOGLE WEB APP URL INSIDE THE QUOTES BELOW
+    // ---------------------------------------------------------
+    const GOOGLE_SCRIPT_URL = "PASTE_YOUR_WEB_APP_URL_HERE"; 
+    // ---------------------------------------------------------
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('entryForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        
+        const inpName = document.getElementById('inpName');
+        const inpDate = document.getElementById('inpDate');
+        const inpShift = document.getElementById('inpShift');
+        const inpAmount = document.getElementById('inpAmount');
+        
+        const dispAmount = document.getElementById('dispAmount');
+        const dispCount = document.getElementById('dispCount');
+        const tableBody = document.querySelector('#logTable tbody');
+
+        const btnUndo = document.getElementById('btnUndo');
+        const btnCsv = document.getElementById('btnCsv');
+        const btnReset = document.getElementById('btnReset');
+
+        let entries = JSON.parse(localStorage.getItem('fireOpsData_v3')) || [];
+        inpDate.value = new Date().toISOString().split('T')[0];
+        render();
+
+        function save() {
+            localStorage.setItem('fireOpsData_v3', JSON.stringify(entries));
+            render();
+        }
+
+        function render() {
+            tableBody.innerHTML = '';
+            let total = 0;
+            entries.slice().reverse().forEach(item => {
+                total += Number(item.amount);
+                const row = `<tr>
+                    <td>${item.date}</td>
+                    <td>${item.name}</td>
+                    <td>${item.shift}</td>
+                    <td>$${Number(item.amount).toFixed(2)}</td>
+                </tr>`;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+            dispAmount.textContent = '$' + total.toFixed(2);
+            dispCount.textContent = entries.length;
+        }
+
+        // --- ADD ENTRY (Local + Cloud) ---
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (GOOGLE_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbzPbAjnrKi_A2iayVF-nqIHqJqyHOGBeFws2_BQz9VwTq2sMMcPREM9Tw681ETuZSZH/exec") {
+                alert("⚠️ Error: You forgot to paste your Google Script URL in the code!");
+                return;
+            }
+
+            // 1. UI Loading State
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Syncing...";
+            statusMsg.textContent = "Uploading to Cloud Database...";
+            statusMsg.className = "status-syncing";
+
+            const newEntry = {
+                id: Date.now(),
+                name: inpName.value,
+                date: inpDate.value,
+                shift: inpShift.value,
+                amount: inpAmount.value
+            };
+
+            // 2. Send to Google Sheets (fetch)
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors", // Important for simple Google Script posts
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(newEntry)
+            })
+            .then(() => {
+                // 3. Success: Save Locally
+                entries.push(newEntry);
+                save();
+                
+                // 4. Reset UI
+                form.reset();
+                inpDate.value = new Date().toISOString().split('T')[0];
+                statusMsg.textContent = "✔ Saved to Sheet & Local Storage";
+                statusMsg.className = "status-success";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                statusMsg.textContent = "⚠ Network Error. Saved Locally Only.";
+                statusMsg.className = "status-error";
+                // Still save locally even if internet fails
+                entries.push(newEntry);
+                save();
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "ADD ENTRY";
+                setTimeout(() => { statusMsg.textContent = ""; }, 4000);
+            });
+        });
+
+        // --- UNDO (Local Only) ---
+        btnUndo.addEventListener('click', () => {
+            if(entries.length === 0) return alert("Nothing to undo.");
+            if(confirm("Undo last entry? (Note: This only removes it from this device, not the Google Sheet)")) {
+                entries.pop();
+                save();
+            }
+        });
+
+        // --- CSV ---
+        btnCsv.addEventListener('click', () => {
+            if(entries.length === 0) return alert("No data to export.");
+            let csv = "Date,Name,Shift,Amount\n";
+            entries.forEach(row => {
+                csv += `${row.date},${row.name.replace(/,/g, " ")},${row.shift.replace(/,/g, " ")},${row.amount}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'fire_log.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        // --- RESET ---
+        btnReset.addEventListener('click', () => {
+            if(confirm("⚠️ DELETE ALL LOCAL DATA?")) {
+                entries = [];
+                save();
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
