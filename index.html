@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FireOps Tracker V3 (Cloud)</title>
+    <title>Super Fund</title>
     
     <meta name="theme-color" content="#b71c1c">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -32,16 +32,22 @@
         label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
 
-        /* Dashboard Stats */
-        .stats-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        /* Dashboard Stats - Main */
+        .stats-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .stat-box { flex: 1; background: var(--charcoal); color: var(--gold); padding: 15px; border-radius: 6px; text-align: center; }
         .stat-val { display: block; font-size: 1.5rem; font-weight: bold; }
         .stat-lbl { font-size: 0.75rem; text-transform: uppercase; color: white; opacity: 0.8; }
 
+        /* Dashboard Stats - Shift Breakdown */
+        .shift-stats-row { display: flex; gap: 5px; margin-bottom: 15px; }
+        .shift-box { flex: 1; background: #333; color: white; padding: 8px; border-radius: 4px; text-align: center; border: 1px solid #555; }
+        .shift-val { display: block; font-size: 1rem; font-weight: bold; color: var(--gold); }
+        .shift-lbl { font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; }
+
         /* Buttons */
         .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 8px; text-transform: uppercase; }
         .btn-add { background: var(--fire-red); color: white; }
-        .btn-add:disabled { background: #e57373; cursor: not-allowed; } /* Loading state */
+        .btn-add:disabled { background: #e57373; cursor: not-allowed; } 
         .btn-undo { background: var(--gold); color: black; }
         .btn-csv { background: var(--charcoal); color: white; }
         .btn-reset { background: transparent; border: 2px solid var(--fire-red); color: var(--fire-red); margin-top: 10px; }
@@ -62,7 +68,7 @@
 <body>
 
 <header>
-    <h1>FireOps Log V3</h1>
+    <h1>Super Fund</h1>
 </header>
 
 <div class="container">
@@ -70,11 +76,26 @@
     <div class="stats-row">
         <div class="stat-box">
             <span class="stat-val" id="dispAmount">$0.00</span>
-            <span class="stat-lbl">Total</span>
+            <span class="stat-lbl">Total Expenses</span>
         </div>
         <div class="stat-box">
             <span class="stat-val" id="dispCount">0</span>
-            <span class="stat-lbl">Shifts</span>
+            <span class="stat-lbl">Logs</span>
+        </div>
+    </div>
+
+    <div class="shift-stats-row">
+        <div class="shift-box">
+            <span class="shift-val" id="totalA">$0</span>
+            <span class="shift-lbl">Shift A</span>
+        </div>
+        <div class="shift-box">
+            <span class="shift-val" id="totalB">$0</span>
+            <span class="shift-lbl">Shift B</span>
+        </div>
+        <div class="shift-box">
+            <span class="shift-val" id="totalC">$0</span>
+            <span class="shift-lbl">Shift C</span>
         </div>
     </div>
 
@@ -92,8 +113,8 @@
                 <input type="date" id="inpDate" required>
             </div>
             <div class="form-group">
-                <label>Shift</label>
-                <input type="text" id="inpShift" placeholder="Shift" required>
+                <label>Shift (A, B, or C)</label>
+                <input type="text" id="inpShift" placeholder="e.g. A-Shift" required>
             </div>
             <div class="form-group">
                 <label>Amount ($)</label>
@@ -131,7 +152,7 @@
 
 <script>
     // ---------------------------------------------------------
-    // FIXED: Your URL is now correctly inserted inside quotes
+    // YOUR GOOGLE SCRIPT URL IS PRE-FILLED BELOW:
     // ---------------------------------------------------------
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYuO3pbIAhk93DGmAY1ARLIyVYbkqnW1ir--zcNO5cwyPde3wp5q7y4iPF7f5cS0_a/exec"; 
     // ---------------------------------------------------------
@@ -148,8 +169,13 @@
         
         const dispAmount = document.getElementById('dispAmount');
         const dispCount = document.getElementById('dispCount');
-        const tableBody = document.querySelector('#logTable tbody');
+        
+        // Selectors for new Shift Stats
+        const totalAEl = document.getElementById('totalA');
+        const totalBEl = document.getElementById('totalB');
+        const totalCEl = document.getElementById('totalC');
 
+        const tableBody = document.querySelector('#logTable tbody');
         const btnUndo = document.getElementById('btnUndo');
         const btnCsv = document.getElementById('btnCsv');
         const btnReset = document.getElementById('btnReset');
@@ -166,34 +192,51 @@
         function render() {
             tableBody.innerHTML = '';
             let total = 0;
+            let sumA = 0;
+            let sumB = 0;
+            let sumC = 0;
+
             entries.slice().reverse().forEach(item => {
-                total += Number(item.amount);
+                const amt = Number(item.amount);
+                total += amt;
+
+                // Shift Calculation Logic (Case Insensitive)
+                const s = item.shift.toLowerCase();
+                if (s.includes('a')) sumA += amt;
+                else if (s.includes('b')) sumB += amt;
+                else if (s.includes('c')) sumC += amt;
+
                 const row = `<tr>
                     <td>${item.date}</td>
                     <td>${item.name}</td>
                     <td>${item.shift}</td>
-                    <td>$${Number(item.amount).toFixed(2)}</td>
+                    <td>$${amt.toFixed(2)}</td>
                 </tr>`;
                 tableBody.insertAdjacentHTML('beforeend', row);
             });
+
+            // Update Main Stats
             dispAmount.textContent = '$' + total.toFixed(2);
             dispCount.textContent = entries.length;
+
+            // Update Shift Stats
+            totalAEl.textContent = '$' + sumA.toFixed(0);
+            totalBEl.textContent = '$' + sumB.toFixed(0);
+            totalCEl.textContent = '$' + sumC.toFixed(0);
         }
 
-        // --- ADD ENTRY (Local + Cloud) ---
+        // --- ADD ENTRY ---
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             
-            // FIXED: Logic check now correctly handles the variable
-            if (GOOGLE_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbzPbAjnrKi_A2iayVF-nqIHqJqyHOGBeFws2_BQz9VwTq2sMMcPREM9Tw681ETuZSZH/exec" || GOOGLE_SCRIPT_URL === "") {
+            if (GOOGLE_SCRIPT_URL === "PASTE_YOUR_WEB_APP_URL_HERE" || GOOGLE_SCRIPT_URL === "") {
                 alert("⚠️ Error: The Google Script URL is missing!");
                 return;
             }
 
-            // 1. UI Loading State
             submitBtn.disabled = true;
             submitBtn.textContent = "Syncing...";
-            statusMsg.textContent = "Uploading to Cloud Database...";
+            statusMsg.textContent = "Uploading...";
             statusMsg.className = "status-syncing";
 
             const newEntry = {
@@ -204,8 +247,6 @@
                 amount: inpAmount.value
             };
 
-            // 2. Send to Google Sheets (Corrected for no-cors)
-            // Using URLSearchParams ensures data is sent as form fields, not JSON body
             const formData = new URLSearchParams();
             formData.append("date", newEntry.date);
             formData.append("name", newEntry.name);
@@ -215,41 +256,35 @@
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors", 
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: formData.toString()
             })
             .then(() => {
-                // 3. Success: Save Locally
                 entries.push(newEntry);
                 save();
-                
-                // 4. Reset UI
                 form.reset();
                 inpDate.value = new Date().toISOString().split('T')[0];
-                statusMsg.textContent = "✔ Saved to Sheet & Local Storage";
+                statusMsg.textContent = "✔ Saved";
                 statusMsg.className = "status-success";
             })
             .catch(error => {
                 console.error('Error:', error);
-                statusMsg.textContent = "⚠ Network Error. Saved Locally Only.";
+                statusMsg.textContent = "⚠ Offline Mode";
                 statusMsg.className = "status-error";
-                // Still save locally even if internet fails
                 entries.push(newEntry);
                 save();
             })
             .finally(() => {
                 submitBtn.disabled = false;
                 submitBtn.textContent = "ADD ENTRY";
-                setTimeout(() => { statusMsg.textContent = ""; }, 4000);
+                setTimeout(() => { statusMsg.textContent = ""; }, 3000);
             });
         });
 
-        // --- UNDO (Local Only) ---
+        // --- UNDO ---
         btnUndo.addEventListener('click', () => {
             if(entries.length === 0) return alert("Nothing to undo.");
-            if(confirm("Undo last entry? (Note: This only removes it from this device, not the Google Sheet)")) {
+            if(confirm("Undo last entry? (Local Only)")) {
                 entries.pop();
                 save();
             }
