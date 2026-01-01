@@ -479,4 +479,101 @@
             `;
         }
 
-        //
+        //// --- Logic & Actions ---
+
+        function getShiftColor(shift) {
+            if(shift === 'A') return 'bg-red-100 text-red-700';
+            if(shift === 'B') return 'bg-blue-100 text-blue-700';
+            return 'bg-green-100 text-green-700';
+        }
+
+        let selectedNewShift = 'A';
+
+        // Global Action Handler
+        window.appState = {
+            setTab: (tab) => {
+                state.activeTab = tab;
+                renderApp();
+            }
+        };
+
+        window.appActions = {
+            selectShift: (shift) => {
+                selectedNewShift = shift;
+                // Quick visual toggle
+                ['A','B','C'].forEach(s => {
+                    const btn = document.getElementById(`btnShift${s}`);
+                    if(s === shift) btn.className = "shift-btn py-3 rounded-lg font-bold border bg-slate-800 text-white border-slate-800";
+                    else btn.className = "shift-btn py-3 rounded-lg font-bold border bg-white text-slate-600 border-slate-200";
+                });
+            },
+            updateDues: () => {
+                const val = document.getElementById('duesInput').value;
+                setLoading(true);
+                google.script.run.withSuccessHandler(onDataLoaded).updateSettings(val);
+            },
+            addMember: () => {
+                const name = document.getElementById('newName').value;
+                if(!name) { alert("Please enter a name"); return; }
+                
+                setLoading(true);
+                const newMember = {
+                    id: 'mem_' + Date.now(),
+                    name,
+                    shift: selectedNewShift,
+                    joinedAt: Date.now()
+                };
+                google.script.run.withSuccessHandler(onDataLoaded).addRosterMember(newMember);
+            },
+            removeMember: (id) => {
+                if(confirm('Are you sure you want to remove this member?')) {
+                    setLoading(true);
+                    google.script.run.withSuccessHandler(onDataLoaded).removeRosterMember(id);
+                }
+            },
+            togglePayment: (empId, empName, shift, existingPaymentId) => {
+                setLoading(true);
+                if(existingPaymentId) {
+                    // Remove payment
+                    google.script.run.withSuccessHandler(onDataLoaded).removePayment(existingPaymentId);
+                } else {
+                    // Add payment
+                    const newPayment = {
+                        id: 'pay_' + Date.now(),
+                        employeeId: empId,
+                        employeeName: empName,
+                        shift,
+                        amount: state.monthlyDues,
+                        monthStr: helpers.getMonthStr()
+                    };
+                    google.script.run.withSuccessHandler(onDataLoaded).addPayment(newPayment);
+                }
+            },
+            masterReset: () => {
+                if(confirm("WARNING: This will delete ALL roster and payment data from the Google Sheet. This cannot be undone.\n\nAre you sure you want to proceed?")) {
+                    setLoading(true);
+                    google.script.run.withSuccessHandler(onDataLoaded).nukeData();
+                }
+            }
+        };
+
+        // --- Event Listeners ---
+
+        document.getElementById('prevMonth').onclick = () => {
+            state.currentDate.setMonth(state.currentDate.getMonth() - 1);
+            state.currentDate = new Date(state.currentDate);
+            renderApp();
+        };
+
+        document.getElementById('nextMonth').onclick = () => {
+            state.currentDate.setMonth(state.currentDate.getMonth() + 1);
+            state.currentDate = new Date(state.currentDate);
+            renderApp();
+        };
+
+        // --- Boot ---
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
