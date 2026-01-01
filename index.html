@@ -7,63 +7,12 @@
     
     <meta name="theme-color" content="#b71c1c">
     <meta name="apple-mobile-web-app-capable" content="yes">
-
-    <style>
-        :root {
-            --fire-red: #b71c1c;
-            --gold: #ffc107;
-            --charcoal: #212121;
-            --white: #ffffff;
-            --light-gray: #f5f5f5;
-        }
-
-        body { font-family: sans-serif; background-color: var(--light-gray); margin: 0; padding-bottom: 50px; }
-
-        header { background: var(--fire-red); color: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--gold); }
-        header h1 { margin: 0; font-size: 1.4rem; text-transform: uppercase; }
-
-        .container { max-width: 600px; margin: 15px auto; padding: 0 15px; }
-
-        .card { background: var(--white); border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h2 { margin-top: 0; font-size: 1.1rem; color: var(--charcoal); border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
-
-        /* Inputs */
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
-
-        /* Dashboard Stats - Main */
-        .stats-row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .stat-box { flex: 1; background: var(--charcoal); color: var(--gold); padding: 15px; border-radius: 6px; text-align: center; }
-        .stat-val { display: block; font-size: 1.5rem; font-weight: bold; }
-        .stat-lbl { font-size: 0.75rem; text-transform: uppercase; color: white; opacity: 0.8; }
-
-        /* Dashboard Stats - Shift Breakdown */
-        .shift-stats-row { display: flex; gap: 5px; margin-bottom: 15px; }
-        .shift-box { flex: 1; background: #333; color: white; padding: 8px; border-radius: 4px; text-align: center; border: 1px solid #555; }
-        .shift-val { display: block; font-size: 1rem; font-weight: bold; color: var(--gold); }
-        .shift-lbl { font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; }
-
-        /* Buttons */
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 8px; text-transform: uppercase; }
-        .btn-add { background: var(--fire-red); color: white; }
-        .btn-add:disabled { background: #e57373; cursor: not-allowed; } 
-        .btn-undo { background: var(--gold); color: black; }
-        .btn-csv { background: var(--charcoal); color: white; }
-        .btn-reset { background: transparent; border: 2px solid var(--fire-red); color: var(--fire-red); margin-top: 10px; }
-
-        /* Table */
-        .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th { text-align: left; background: #eee; padding: 8px; border-bottom: 2px solid #ddd; }
-        td { padding: 8px; border-bottom: 1px solid #eee; }
-
-        /* Status Bar */
-        #statusMsg { text-align: center; font-size: 0.8rem; margin-bottom: 10px; min-height: 1.2em; font-weight: bold; }
-        .status-syncing { color: var(--gold); }
-        .status-success { color: green; }
-        .status-error { color: red; }
-    </style>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
 </head>
 <body>
 
@@ -113,8 +62,13 @@
                 <input type="date" id="inpDate" required>
             </div>
             <div class="form-group">
-                <label>Shift (A, B, or C)</label>
-                <input type="text" id="inpShift" placeholder="e.g. A-Shift" required>
+                <label>Shift</label>
+                <select id="inpShift" required>
+                    <option value="" disabled selected>Select Shift</option>
+                    <option value="A-Shift">A-Shift</option>
+                    <option value="B-Shift">B-Shift</option>
+                    <option value="C-Shift">C-Shift</option>
+                </select>
             </div>
             <div class="form-group">
                 <label>Amount ($)</label>
@@ -150,172 +104,14 @@
 
 </div>
 
+<script src="app.js"></script>
+
 <script>
-    // ---------------------------------------------------------
-    // YOUR GOOGLE SCRIPT URL IS PRE-FILLED BELOW:
-    // ---------------------------------------------------------
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYuO3pbIAhk93DGmAY1ARLIyVYbkqnW1ir--zcNO5cwyPde3wp5q7y4iPF7f5cS0_a/exec"; 
-    // ---------------------------------------------------------
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('entryForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const statusMsg = document.getElementById('statusMsg');
-        
-        const inpName = document.getElementById('inpName');
-        const inpDate = document.getElementById('inpDate');
-        const inpShift = document.getElementById('inpShift');
-        const inpAmount = document.getElementById('inpAmount');
-        
-        const dispAmount = document.getElementById('dispAmount');
-        const dispCount = document.getElementById('dispCount');
-        
-        // Selectors for new Shift Stats
-        const totalAEl = document.getElementById('totalA');
-        const totalBEl = document.getElementById('totalB');
-        const totalCEl = document.getElementById('totalC');
-
-        const tableBody = document.querySelector('#logTable tbody');
-        const btnUndo = document.getElementById('btnUndo');
-        const btnCsv = document.getElementById('btnCsv');
-        const btnReset = document.getElementById('btnReset');
-
-        let entries = JSON.parse(localStorage.getItem('fireOpsData_v3')) || [];
-        inpDate.value = new Date().toISOString().split('T')[0];
-        render();
-
-        function save() {
-            localStorage.setItem('fireOpsData_v3', JSON.stringify(entries));
-            render();
-        }
-
-        function render() {
-            tableBody.innerHTML = '';
-            let total = 0;
-            let sumA = 0;
-            let sumB = 0;
-            let sumC = 0;
-
-            entries.slice().reverse().forEach(item => {
-                const amt = Number(item.amount);
-                total += amt;
-
-                // Shift Calculation Logic (Case Insensitive)
-                const s = item.shift.toLowerCase();
-                if (s.includes('a')) sumA += amt;
-                else if (s.includes('b')) sumB += amt;
-                else if (s.includes('c')) sumC += amt;
-
-                const row = `<tr>
-                    <td>${item.date}</td>
-                    <td>${item.name}</td>
-                    <td>${item.shift}</td>
-                    <td>$${amt.toFixed(2)}</td>
-                </tr>`;
-                tableBody.insertAdjacentHTML('beforeend', row);
-            });
-
-            // Update Main Stats
-            dispAmount.textContent = '$' + total.toFixed(2);
-            dispCount.textContent = entries.length;
-
-            // Update Shift Stats
-            totalAEl.textContent = '$' + sumA.toFixed(0);
-            totalBEl.textContent = '$' + sumB.toFixed(0);
-            totalCEl.textContent = '$' + sumC.toFixed(0);
-        }
-
-        // --- ADD ENTRY ---
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            if (GOOGLE_SCRIPT_URL === "PASTE_YOUR_WEB_APP_URL_HERE" || GOOGLE_SCRIPT_URL === "") {
-                alert("⚠️ Error: The Google Script URL is missing!");
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = "Syncing...";
-            statusMsg.textContent = "Uploading...";
-            statusMsg.className = "status-syncing";
-
-            const newEntry = {
-                id: Date.now(),
-                name: inpName.value,
-                date: inpDate.value,
-                shift: inpShift.value,
-                amount: inpAmount.value
-            };
-
-            const formData = new URLSearchParams();
-            formData.append("date", newEntry.date);
-            formData.append("name", newEntry.name);
-            formData.append("shift", newEntry.shift);
-            formData.append("amount", newEntry.amount);
-
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors", 
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: formData.toString()
-            })
-            .then(() => {
-                entries.push(newEntry);
-                save();
-                form.reset();
-                inpDate.value = new Date().toISOString().split('T')[0];
-                statusMsg.textContent = "✔ Saved";
-                statusMsg.className = "status-success";
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                statusMsg.textContent = "⚠ Offline Mode";
-                statusMsg.className = "status-error";
-                entries.push(newEntry);
-                save();
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.textContent = "ADD ENTRY";
-                setTimeout(() => { statusMsg.textContent = ""; }, 3000);
-            });
-        });
-
-        // --- UNDO ---
-        btnUndo.addEventListener('click', () => {
-            if(entries.length === 0) return alert("Nothing to undo.");
-            if(confirm("Undo last entry? (Local Only)")) {
-                entries.pop();
-                save();
-            }
-        });
-
-        // --- CSV ---
-        btnCsv.addEventListener('click', () => {
-            if(entries.length === 0) return alert("No data to export.");
-            let csv = "Date,Name,Shift,Amount\n";
-            entries.forEach(row => {
-                csv += `${row.date},${row.name.replace(/,/g, " ")},${row.shift.replace(/,/g, " ")},${row.amount}\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'fire_log.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
-
-        // --- RESET ---
-        btnReset.addEventListener('click', () => {
-            if(confirm("⚠️ DELETE ALL LOCAL DATA?")) {
-                entries = [];
-                save();
-            }
-        });
-    });
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker Registered'))
+        .catch(err => console.log('SW Failed:', err));
+    }
 </script>
 
 </body>
