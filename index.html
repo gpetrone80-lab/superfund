@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Station Super Fund (Cloud)</title>
+    
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Station Super Fund","short_name":"StationFund","start_url":".","display":"standalone","background_color":"#f1f5f9","theme_color":"#b91c1c","orientation":"portrait","icons":[{"src":"https://placehold.co/192x192/b91c1c/ffffff.png?text=SF","sizes":"192x192","type":"image/png"},{"src":"https://placehold.co/512x512/b91c1c/ffffff.png?text=Station+Fund","sizes":"512x512","type":"image/png"}]}'>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StationFund">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/b91c1c/ffffff.png?text=SF">
+
+    <meta name="theme-color" content="#b91c1c">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .select-none { user-select: none; -webkit-user-select: none; }
+        .active-scale:active { transform: scale(0.95); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .pt-safe-top { padding-top: env(safe-area-inset-top, 20px); }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-900 select-none h-screen flex flex-col overflow-hidden">
+
+    <div id="app" class="flex-1 flex flex-col h-full overflow-hidden">
+        <header class="bg-red-700 text-white shadow-lg z-40 shrink-0 pt-safe-top">
+            <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-lg">
+                        <i data-lucide="coffee" class="h-6 w-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight">Station Fund</h1>
+                        <p class="text-xs text-red-100 font-medium opacity-80 flex items-center gap-1">
+                            <span id="connectionStatus" class="w-2 h-2 rounded-full bg-green-400"></span>
+                            GOOGLE CLOUD
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center bg-red-800/50 rounded-lg px-2 py-1 border border-red-600">
+                    <button id="prevMonth" class="p-1 hover:bg-red-600 rounded active-scale">
+                        <i data-lucide="chevron-left" class="h-5 w-5"></i>
+                    </button>
+                    <span id="currentMonthDisplay" class="mx-3 font-semibold min-w-[100px] text-center text-sm">Loading...</span>
+                    <button id="nextMonth" class="p-1 hover:bg-red-600 rounded active-scale">
+                        <i data-lucide="chevron-right" class="h-5 w-5"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 flex overflow-hidden max-w-5xl mx-auto w-full relative">
+            
+            <aside class="hidden md:flex w-64 flex-col border-r border-slate-200 bg-white h-full shrink-0">
+                <nav class="flex-1 p-4 space-y-2">
+                    <button onclick="window.appState.setTab('dashboard')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="dashboard">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5"></i> Dashboard
+                    </button>
+                    <button onclick="window.appState.setTab('payments')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="payments">
+                        <i data-lucide="dollar-sign" class="w-5 h-5"></i> Log Payments
+                    </button>
+                    <button onclick="window.appState.setTab('analytics')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="analytics">
+                        <i data-lucide="file-text" class="w-5 h-5"></i> Reports
+                    </button>
+                    <button onclick="window.appState.setTab('roster')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="roster">
+                        <i data-lucide="users" class="w-5 h-5"></i> Manage Roster
+                    </button>
+                </nav>
+            </aside>
+
+            <main id="mainContent" class="flex-1 overflow-y-auto p-4 pb-24 md:pb-4 select-text no-scrollbar">
+                <div class="flex flex-col items-center justify-center h-64 text-slate-400">
+                    <div class="animate-spin mb-4"><i data-lucide="loader-2" class="w-8 h-8"></i></div>
+                    <p>Syncing with Headquarters...</p>
+                </div>
+            </main>
+        </div>
+
+        <nav class="md:hidden bg-white border-t border-slate-200 pb-safe fixed bottom-0 w-full z-40 flex justify-around items-center px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <button onclick="window.appState.setTab('dashboard')" class="nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg text-slate-400" data-tab="dashboard">
+                <div class="p-1 rounded-lg mb-1"><i data-lucide="bar-chart-3" class="w-6 h-6"></i></div>
+                <span class="text-[10px] font-bold uppercase tracking-wide">Dash</span>
+            </button>
+            <button onclick="window.appState.setTab('payments')" class="nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg text-slate-400" data-tab="payments">
+                <div class="p-1 rounded-lg mb-1"><i data-lucide="dollar-sign" class="w-6 h-6"></i></div>
+                <span class="text-[10px] font-bold uppercase tracking-wide">Log Pay</span>
+            </button>
+            <button onclick="window.appState.setTab('analytics')" class="nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg text-slate-400" data-tab="analytics">
+                <div class="p-1 rounded-lg mb-1"><i data-lucide="file-text" class="w-6 h-6"></i></div>
+                <span class="text-[10px] font-bold uppercase tracking-wide">Reports</span>
+            </button>
+            <button onclick="window.appState.setTab('roster')" class="nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg text-slate-400" data-tab="roster">
+                <div class="p-1 rounded-lg mb-1"><i data-lucide="users" class="w-6 h-6"></i></div>
+                <span class="text-[10px] font-bold uppercase tracking-wide">Roster</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const state = {
+            activeTab: 'dashboard',
+            currentDate: new Date(),
+            roster: [],
+            payments: [],
+            monthlyDues: 20,
+            isLoading: false
+        };
+
+        // --- Derived State Helpers ---
+        const helpers = {
+            getMonthStr: () => state.currentDate.toISOString().slice(0, 7), // "YYYY-MM"
+            getCurrentPayments: () => {
+                const ms = helpers.getMonthStr();
+                return state.payments.filter(p => p.monthStr === ms);
+            },
+            formatMonth: (date) => date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            getStats: () => {
+                const currentPayments = helpers.getCurrentPayments();
+                const totalCollected = currentPayments.reduce((sum, p) => sum + p.amount, 0);
+                const totalPotential = state.roster.length * state.monthlyDues;
+                const percent = totalPotential > 0 ? Math.round((totalCollected / totalPotential) * 100) : 0;
+                return { totalCollected, totalPotential, percent };
+            }
+        };
+
+        // --- Data Persistence (Google Cloud) ---
+        
+        function setLoading(bool) {
+            state.isLoading = bool;
+            const statusDot = document.getElementById('connectionStatus');
+            const monthDisplay = document.getElementById('currentMonthDisplay');
+            
+            if(bool) {
+                if(statusDot) statusDot.className = "w-2 h-2 rounded-full bg-yellow-400 animate-pulse";
+                if(monthDisplay) monthDisplay.textContent = "Syncing...";
+                document.body.style.cursor = 'wait';
+            } else {
+                if(statusDot) statusDot.className = "w-2 h-2 rounded-full bg-green-400";
+                if(monthDisplay) monthDisplay.textContent = helpers.formatMonth(state.currentDate);
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        function loadData() {
+            setLoading(true);
+            // Call the Google Apps Script function
+            google.script.run
+                .withSuccessHandler(onDataLoaded)
+                .withFailureHandler(onDataError)
+                .getInitialData();
+        }
+
+        function onDataLoaded(data) {
+            console.log("Data received from sheet", data);
+            state.roster = data.roster || [];
+            state.payments = data.payments || [];
+            state.monthlyDues = data.monthlyDues || 20;
+            setLoading(false);
+            renderApp();
+        }
+
+        function onDataError(err) {
+            console.error(err);
+            alert("Error syncing with Station Database. Check internet connection.");
+            const statusDot = document.getElementById('connectionStatus');
+            if(statusDot) statusDot.className = "w-2 h-2 rounded-full bg-red-600";
+            setLoading(false);
+        }
+
+        // --- UI Rendering ---
+
+        function renderApp() {
+            if(state.isLoading && state.roster.length === 0) return; // Wait for initial load
+
+            document.getElementById('currentMonthDisplay').textContent = helpers.formatMonth(state.currentDate);
+            updateNavStyles();
+
+            const main = document.getElementById('mainContent');
+            
+            switch(state.activeTab) {
+                case 'dashboard':
+                    main.innerHTML = renderDashboard();
+                    break;
+                case 'payments':
+                    main.innerHTML = renderPayments();
+                    break;
+                case 'roster':
+                    main.innerHTML = renderRoster();
+                    break;
+                case 'analytics':
+                    main.innerHTML = renderAnalytics();
+                    break;
+            }
+            
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+
+        function updateNavStyles() {
+            // Desktop
+            document.querySelectorAll('.nav-btn-desktop').forEach(btn => {
+                const isActive = btn.dataset.tab === state.activeTab;
+                btn.className = `nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${isActive ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-slate-600 hover:bg-slate-50'}`;
+                const icon = btn.querySelector('i, svg');
+                if (icon) {
+                    if(isActive) icon.classList.add('text-red-600');
+                    else icon.classList.remove('text-red-600');
+                }
+            });
+
+            // Mobile
+            document.querySelectorAll('.nav-btn-mobile').forEach(btn => {
+                const isActive = btn.dataset.tab === state.activeTab;
+                btn.className = `nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg transition-all active-scale ${isActive ? 'text-red-600' : 'text-slate-400'}`;
+                const bg = btn.querySelector('div');
+                if (bg) {
+                    bg.className = `p-1 rounded-lg mb-1 ${isActive ? 'bg-red-50' : ''}`;
+                }
+            });
+        }
+
+        function renderDashboard() {
+            const { totalCollected, totalPotential, percent } = helpers.getStats();
+            const payments = helpers.getCurrentPayments();
+            const recent = [...payments].sort((a,b) => b.timestamp.seconds - a.timestamp.seconds).slice(0, 5);
+
+            return `
+                <div class="space-y-6 animate-in fade-in duration-300">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-sm font-medium uppercase tracking-wider">Collected</p>
+                            <p class="text-3xl font-bold text-slate-800 mt-1">$${totalCollected}</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                            <p class="text-slate-500 text-sm font-medium uppercase tracking-wider">Target</p>
+                            <p class="text-3xl font-bold text-slate-400 mt-1">$${totalPotential}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-end mb-2">
+                            <h2 class="text-lg font-bold text-slate-800">Contribution Progress</h2>
+                            <span class="font-bold text-xl ${percent >= 100 ? 'text-green-600' : 'text-red-600'}">${percent}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-1000 ${percent >= 100 ? 'bg-green-500' : 'bg-red-600'}" style="width: ${Math.min(percent, 100)}%"></div>
+                        </div>
+                        <p class="text-sm text-slate-500 mt-2">${payments.length} out of ${state.roster.length} members have paid.</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100">
+                            <h2 class="text-lg font-bold text-slate-800">Recent Payments</h2>
+                        </div>
+                        <div class="divide-y divide-slate-50">
+                            ${recent.length === 0 ? '<div class="p-8 text-center text-slate-400 italic">No payments recorded this month.</div>' : ''}
+                            ${recent.map(p => `
+                                <div class="px-6 py-3 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getShiftColor(p.shift)}">${p.shift}</div>
+                                        <div>
+                                            <p class="font-semibold text-slate-800">${p.employeeName}</p>
+                                            <p class="text-xs text-slate-400">Paid just now</p>
+                                        </div>
+                                    </div>
+                                    <span class="font-bold text-green-600">+$${p.amount}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPayments() {
+            const currentPayments = helpers.getCurrentPayments();
+            const grouped = { A: [], B: [], C: [] };
+            state.roster.forEach(e => { if(grouped[e.shift]) grouped[e.shift].push(e); });
+
+            let html = `
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-600 mb-6 animate-in fade-in duration-300">
+                    <h2 class="text-xl font-bold text-slate-800">Log Payments</h2>
+                    <p class="text-slate-500 text-sm">Tap a crew member to toggle payment (Dues: $${state.monthlyDues}). Syncs instantly.</p>
+                </div>
+            `;
+
+            ['A', 'B', 'C'].forEach(shift => {
+                const shiftMembers = grouped[shift];
+                const shiftPaidCount = shiftMembers.filter(m => currentPayments.find(p => p.employeeId === m.id)).length;
+
+                html += `
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4 animate-in slide-in-from-bottom-2 duration-300">
+                        <div class="bg-slate-50 px-6 py-3 border-b border-slate-200 font-bold text-slate-700 flex justify-between">
+                            <span>Shift ${shift}</span>
+                            <span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600 font-normal uppercase">${shiftPaidCount} / ${shiftMembers.length} Paid</span>
+                        </div>
+                        <div class="divide-y divide-slate-100">
+                            ${shiftMembers.length === 0 ? '<div class="p-4 text-center text-slate-400 text-sm">No members in this shift.</div>' : ''}
+                            ${shiftMembers.map(emp => {
+                                const payment = currentPayments.find(p => p.employeeId === emp.id);
+                                const isPaid = !!payment;
+                                return `
+                                    <button onclick="window.appActions.togglePayment('${emp.id}', '${emp.name}', '${emp.shift}', '${payment ? payment.id : ''}')" 
+                                        class="w-full text-left px-6 py-4 flex items-center justify-between transition-all active:bg-slate-100 ${isPaid ? 'bg-green-50/50' : 'bg-white'}">
+                                        <span class="font-semibold text-lg ${isPaid ? 'text-slate-800' : 'text-slate-500'}">${emp.name}</span>
+                                        <div class="flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${isPaid ? 'bg-green-100 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-400 shadow-sm'}">
+                                            ${isPaid 
+                                                ? `<i data-lucide="check-circle-2" class="w-5 h-5"></i><span class="font-bold text-sm">PAID</span>`
+                                                : `<div class="w-5 h-5 rounded-full border-2 border-slate-300"></div><span class="font-medium text-sm">UNPAID</span>`
+                                            }
+                                        </div>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        function renderRoster() {
+            return `
+                <div class="space-y-6 animate-in fade-in duration-300">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="bg-slate-100 p-2 rounded-lg text-slate-600"><i data-lucide="dollar-sign" class="w-5 h-5"></i></div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800">Fund Settings</h2>
+                                <p class="text-xs text-slate-500">Monthly amount per person.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-end gap-4 max-w-md">
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Monthly Dues ($)</label>
+                                <input type="number" id="duesInput" value="${state.monthlyDues}" class="w-full p-3 border border-slate-300 rounded-lg font-bold text-slate-800">
+                            </div>
+                            <button onclick="window.appActions.updateDues()" class="bg-slate-800 text-white font-bold py-3 px-6 rounded-lg">Update</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h2 class="text-xl font-bold text-slate-800 mb-4">Add Crew Member</h2>
+                        <div class="flex flex-col gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                                <input type="text" id="newName" placeholder="Ex: John Doe" class="w-full p-3 border border-slate-300 rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Shift</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button onclick="window.appActions.selectShift('A')" id="btnShiftA" class="shift-btn py-3 rounded-lg font-bold border bg-slate-800 text-white border-slate-800">A</button>
+                                    <button onclick="window.appActions.selectShift('B')" id="btnShiftB" class="shift-btn py-3 rounded-lg font-bold border bg-white text-slate-600 border-slate-200">B</button>
+                                    <button onclick="window.appActions.selectShift('C')" id="btnShiftC" class="shift-btn py-3 rounded-lg font-bold border bg-white text-slate-600 border-slate-200">C</button>
+                                </div>
+                            </div>
+                            <button onclick="window.appActions.addMember()" class="bg-red-600 text-white font-bold py-4 rounded-lg shadow-lg flex items-center justify-center gap-2">
+                                <i data-lucide="plus" class="w-5 h-5"></i> Add to Roster
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100"><h2 class="text-lg font-bold text-slate-800">Current Roster</h2></div>
+                        <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                            ${state.roster.map(emp => `
+                                <div class="px-6 py-3 flex justify-between items-center hover:bg-slate-50">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getShiftColor(emp.shift)}">${emp.shift}</div>
+                                        <span class="font-medium text-slate-700">${emp.name}</span>
+                                    </div>
+                                    <button onclick="window.appActions.removeMember('${emp.id}')" class="text-slate-300 hover:text-red-600 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAnalytics() {
+            const stats = { A: {paid:0, total:0, $$:0}, B: {paid:0, total:0, $$:0}, C: {paid:0, total:0, $$:0} };
+            const currentPayments = helpers.getCurrentPayments();
+            
+            state.roster.forEach(r => stats[r.shift].total++);
+            currentPayments.forEach(p => {
+                if(stats[p.shift]) {
+                    stats[p.shift].paid++;
+                    stats[p.shift].$$ += p.amount;
+                }
+            });
+
+            const missing = state.roster.filter(r => !currentPayments.find(p => p.employeeId === r.id));
+            const reportText = generateReportText(stats, missing);
+
+            return `
+                <div class="space-y-6 animate-in fade-in duration-300">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">Monthly Report</h2>
+                        
+                        <div class="space-y-3">
+                            <button onclick="navigator.clipboard.writeText(\`${reportText}\`).then(() => alert('Copied!'))" class="w-full bg-slate-800 text-white px-6 py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-slate-700 transition-colors">
+                                <i data-lucide="copy" class="w-5 h-5"></i> Copy Summary
+                            </button>
+                            
+                            <button onclick="window.appActions.exportCSV()" class="w-full bg-green-700 text-white px-6 py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-green-600 transition-colors">
+                                <i data-lucide="sheet" class="w-5 h-5"></i> Export to Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${['A','B','C'].map(s => {
+                            const d = stats[s];
+                            const pct = d.total > 0 ? Math.round((d.paid/d.total)*100) : 0;
+                            const color = s === 'A' ? 'bg-red-500' : s === 'B' ? 'bg-blue-500' : 'bg-green-500';
+                            return `
+                                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
+                                    <div class="absolute top-0 left-0 w-2 h-full ${color}"></div>
+                                    <div class="pl-4">
+                                        <h3 class="text-lg font-bold text-slate-700 mb-1">Shift ${s}</h3>
+                                        <div class="flex justify-between items-end">
+                                            <div><p class="text-3xl font-bold text-slate-900">$${d.$$}</p><p class="text-xs text-slate-500 font-medium uppercase mt-1">Collected</p></div>
+                                            <div class="text-right"><p class="text-xl font-bold text-slate-400">${pct}%</p><p class="text-xs text-slate-400">Paid</p></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-red-100 bg-red-50 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
+                            <h2 class="text-lg font-bold text-red-800">Unpaid Members (${missing.length})</h2>
+                        </div>
+                        <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                            ${missing.map(m => `
+                                <div class="px-6 py-3 flex justify-between items-center hover:bg-slate-50">
+                                    <div><p class="font-semibold text-slate-800">${m.name}</p><span class="text-xs px-2 py-0.5 rounded font-bold bg-slate-100">Shift ${m.shift}</span></div>
+                                    <span class="text-sm font-medium text-red-500">Owning $${state.monthlyDues}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Logic & Actions (Server Connected) ---
+
+        function getShiftColor(shift) {
+            if(shift === 'A') return 'bg-red-100 text-red-700';
+            if(shift === 'B') return 'bg-blue-100 text-blue-700';
+            return 'bg-green-100 text-green-700';
+        }
+
+        function generateReportText(stats, missing) {
+            let txt = `STATION FUND - ${helpers.formatMonth(state.currentDate)}\n\n`;
+            ['A','B','C'].forEach(s => {
+                txt += `SHIFT ${s}: $${stats[s].$$} (${stats[s].paid}/${stats[s].total})\n`;
+            });
+            txt += `\nMISSING:\n` + missing.map(m => `${m.name} (${m.shift})`).join(', ');
+            return txt.replace(/'/g, "\\'"); 
+        }
+
+        let selectedNewShift = 'A';
+
+        // Actions
+        window.appState = {
+            setTab: (tab) => {
+                state.activeTab = tab;
+                renderApp();
+            }
+        };
+
+        window.appActions = {
+            updateDues: () => {
+                const val = document.getElementById('duesInput').value;
+                const newDues = Number(val);
+                setLoading(true);
+                // Call server
+                google.script.run.withSuccessHandler(() => {
+                    state.monthlyDues = newDues;
+                    setLoading(false);
+                    alert('Dues updated on server.');
+                    renderApp();
+                }).serverUpdateDues(newDues);
+            },
+            selectShift: (shift) => {
+                selectedNewShift = shift;
+                ['A','B','C'].forEach(s => {
+                    const btn = document.getElementById(`btnShift${s}`);
+                    if(btn) {
+                        if(s === shift) btn.className = "shift-btn py-3 rounded-lg font-bold border bg-slate-800 text-white border-slate-800";
+                        else btn.className = "shift-btn py-3 rounded-lg font-bold border bg-white text-slate-600 border-slate-200";
+                    }
+                });
+            },
+            addMember: () => {
+                const name = document.getElementById('newName').value;
+                if(!name) return;
+                
+                const newMember = {
+                    id: 'mem_' + Date.now(),
+                    name,
+                    shift: selectedNewShift,
+                    joinedAt: Date.now()
+                };
+
+                // Optimistic UI Update
+                state.roster.push(newMember);
+                renderApp();
+                
+                // Server Sync
+                google.script.run.serverAddMember(newMember);
+            },
+            removeMember: (id) => {
+                if(confirm('Remove member?')) {
+                    // Optimistic UI Update
+                    state.roster = state.roster.filter(m => m.id !== id);
+                    renderApp();
+                    // Server Sync
+                    google.script.run.serverRemoveMember(id);
+                }
+            },
+            togglePayment: (empId, empName, shift, existingPaymentId) => {
+                setLoading(true);
+                
+                if(existingPaymentId) {
+                    // Remove Locally
+                    state.payments = state.payments.filter(p => p.id !== existingPaymentId);
+                    
+                    // Server Sync
+                    google.script.run.withSuccessHandler(() => setLoading(false))
+                        .serverRemovePayment(existingPaymentId);
+                } else {
+                    // Add Locally
+                    const newPayment = {
+                        id: 'pay_' + Date.now(),
+                        employeeId: empId,
+                        employeeName: empName,
+                        shift,
+                        amount: state.monthlyDues,
+                        monthStr: helpers.getMonthStr(),
+                        timestamp: { seconds: Date.now() / 1000 }
+                    };
+                    state.payments.push(newPayment);
+                    
+                    // Server Sync
+                    google.script.run.withSuccessHandler(() => setLoading(false))
+                        .serverAddPayment(newPayment);
+                }
+                renderApp();
+            },
+            exportCSV: () => {
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Date,Month,Employee,Shift,Amount\n";
+                state.payments.forEach(p => {
+                    const date = new Date(p.timestamp.seconds * 1000).toLocaleDateString();
+                    const row = `${date},${p.monthStr},${p.employeeName},${p.shift},${p.amount}`;
+                    csvContent += row + "\n";
+                });
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "station_fund_export.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
+        // --- Event Listeners ---
+
+        document.getElementById('prevMonth').onclick = () => {
+            state.currentDate.setMonth(state.currentDate.getMonth() - 1);
+            state.currentDate = new Date(state.currentDate);
+            renderApp();
+        };
+
+        document.getElementById('nextMonth').onclick = () => {
+            state.currentDate.setMonth(state.currentDate.getMonth() + 1);
+            state.currentDate = new Date(state.currentDate);
+            renderApp();
+        };
+
+        // --- Boot ---
+        loadData();
+
+    </script>
+</body>
+</html>
