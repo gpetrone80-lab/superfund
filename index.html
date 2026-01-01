@@ -5,51 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Station Super Fund (Cloud)</title>
     
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Station Super Fund","short_name":"StationFund","start_url":".","display":"standalone","background_color":"#f1f5f9","theme_color":"#b91c1c","orientation":"portrait","icons":[{"src":"https://placehold.co/192x192/b91c1c/ffffff.png?text=SF","sizes":"192x192","type":"image/png"},{"src":"https://placehold.co/512x512/b91c1c/ffffff.png?text=Station+Fund","sizes":"512x512","type":"image/png"}]}'>
     
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StationFund">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/b91c1c/ffffff.png?text=SF">
+    <meta name="theme-color" content="#b91c1c">
+
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
     <style>
-        /* Mobile safe area padding */
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        .pt-safe-top { padding-top: env(safe-area-inset-top, 0px); }
-        
-        /* UI Tweaks */
         .select-none { user-select: none; -webkit-user-select: none; }
         .active-scale:active { transform: scale(0.95); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Loading Spinner Animation */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #b91c1c; /* Red-700 */
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 select-none h-screen flex flex-col overflow-hidden">
 
-    <div id="loadingOverlay" class="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center transition-opacity duration-300">
-        <div class="loader mb-4"></div>
-        <p class="text-slate-500 font-medium animate-pulse">Syncing with Station Database...</p>
-    </div>
-
-    <div id="app" class="flex-1 flex flex-col h-full overflow-hidden opacity-0 transition-opacity duration-500">
-        
+    <div id="app" class="flex-1 flex flex-col h-full overflow-hidden">
         <header class="bg-red-700 text-white shadow-lg z-40 shrink-0 pt-safe-top">
             <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="bg-white/20 p-2 rounded-lg">
-                        <i data-lucide="cloud" class="h-6 w-6 text-white"></i>
+                        <i data-lucide="coffee" class="h-6 w-6 text-white"></i>
                     </div>
                     <div>
                         <h1 class="text-xl font-bold tracking-tight">Station Fund</h1>
-                        <p class="text-xs text-red-100 font-medium opacity-80">CLOUD SYNC ACTIVE</p>
+                        <p class="text-xs text-red-100 font-medium opacity-80 flex items-center gap-1">
+                            <span id="connectionStatus" class="w-2 h-2 rounded-full bg-yellow-400"></span> GOOGLE CLOUD
+                        </p>
                     </div>
                 </div>
                 <div class="flex items-center bg-red-800/50 rounded-lg px-2 py-1 border border-red-600">
@@ -80,500 +70,22 @@
                     <button onclick="window.appState.setTab('roster')" class="nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-slate-600 hover:bg-slate-50" data-tab="roster">
                         <i data-lucide="users" class="w-5 h-5"></i> Manage Roster
                     </button>
+                    <button onclick="loadData()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all text-blue-600 hover:bg-blue-50 mt-4">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i> Refresh Data
+                    </button>
                 </nav>
             </aside>
 
-            <main id="mainContent" class="flex-1 overflow-y-auto p-4 pb-24 md:pb-4 select-text no-scrollbar">
-                </main>
+            <main id="mainContent" class="flex-1 overflow-y-auto p-4 pb-24 md:pb-4 select-text no-scrollbar relative">
+                <div id="loadingOverlay" class="absolute inset-0 bg-slate-100/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+                    <div class="flex flex-col items-center">
+                        <i data-lucide="loader-2" class="w-10 h-10 text-red-600 spinner"></i>
+                        <p class="text-sm font-semibold text-slate-500 mt-2">Syncing...</p>
+                    </div>
+                </div>
+                <div id="contentBody"></div>
+            </main>
         </div>
 
         <nav class="md:hidden bg-white border-t border-slate-200 pb-safe fixed bottom-0 w-full z-40 flex justify-around items-center px-2 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            <button onclick="window.appState.setTab('dashboard')" class="nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg text-slate-400" data-tab="dashboard">
-                <div class="p-1 rounded-lg mb-1"><i data-lucide="bar-chart-3" class="w-6 h-6"></i></div>
-                <span class="text-[10px] font-bold uppercase tracking-wide">Dash</span>
-            </button>
-            <button onclick="window.appState.setTab('payments')" class="nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg text-slate-400" data-tab="payments">
-                <div class="p-1 rounded-lg mb-1"><i data-lucide="dollar-sign" class="w-6 h-6"></i></div>
-                <span class="text-[10px] font-bold uppercase tracking-wide">Pay</span>
-            </button>
-            <button onclick="window.appState.setTab('analytics')" class="nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg text-slate-400" data-tab="analytics">
-                <div class="p-1 rounded-lg mb-1"><i data-lucide="file-text" class="w-6 h-6"></i></div>
-                <span class="text-[10px] font-bold uppercase tracking-wide">Report</span>
-            </button>
-            <button onclick="window.appState.setTab('roster')" class="nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg text-slate-400" data-tab="roster">
-                <div class="p-1 rounded-lg mb-1"><i data-lucide="users" class="w-6 h-6"></i></div>
-                <span class="text-[10px] font-bold uppercase tracking-wide">Roster</span>
-            </button>
-        </nav>
-    </div>
-
-    <script>
-        // --- State Management ---
-        const state = {
-            activeTab: 'dashboard',
-            currentDate: new Date(),
-            roster: [],
-            payments: [],
-            monthlyDues: 20,
-            isLoading: true
-        };
-
-        // --- Helpers ---
-        const helpers = {
-            // Returns "YYYY-MM" for filtering
-            getMonthStr: () => state.currentDate.toISOString().slice(0, 7),
-            
-            // Returns payments only for current month
-            getCurrentPayments: () => {
-                const ms = helpers.getMonthStr();
-                return state.payments.filter(p => p.monthStr === ms);
-            },
-            
-            // Formatting
-            formatMonth: (date) => date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-            
-            // Math
-            getStats: () => {
-                const currentPayments = helpers.getCurrentPayments();
-                const totalCollected = currentPayments.reduce((sum, p) => sum + p.amount, 0);
-                const totalPotential = state.roster.length * state.monthlyDues;
-                const percent = totalPotential > 0 ? Math.round((totalCollected / totalPotential) * 100) : 0;
-                return { totalCollected, totalPotential, percent };
-            }
-        };
-
-        // --- Google Connection & Loader ---
-        
-        function setLoading(bool) {
-            state.isLoading = bool;
-            const overlay = document.getElementById('loadingOverlay');
-            const app = document.getElementById('app');
-            
-            if(bool) {
-                overlay.style.opacity = '1';
-                overlay.style.pointerEvents = 'all';
-                overlay.style.display = 'flex'; // Ensure it's visible
-            } else {
-                overlay.style.opacity = '0';
-                overlay.style.pointerEvents = 'none';
-                app.style.opacity = '1';
-                // Wait for fade out to hide display, but not strictly necessary with pointer-events:none
-                setTimeout(() => { overlay.style.display = 'none'; }, 300);
-            }
-        }
-
-        // --- Core App Lifecycle ---
-
-        function initApp() {
-            console.log("App Initializing...");
-            setLoading(true);
-            
-            // Call Backend
-            google.script.run
-                .withSuccessHandler(onDataLoaded)
-                .withFailureHandler(onDataError)
-                .getAppData();
-        }
-
-        function onDataLoaded(serverData) {
-            console.log("Data Received:", serverData);
-            
-            // Safely assign data
-            state.roster = serverData.roster || [];
-            state.payments = serverData.payments || [];
-            state.monthlyDues = Number(serverData.monthlyDues) || 20;
-            
-            // Refresh UI
-            setLoading(false);
-            renderApp();
-        }
-
-        function onDataError(err) {
-            console.error(err);
-            alert("Connection Error:\n" + err.message);
-            setLoading(false);
-        }
-
-        // --- Rendering Logic ---
-
-        function renderApp() {
-            // Update Month Header
-            document.getElementById('currentMonthDisplay').textContent = helpers.formatMonth(state.currentDate);
-
-            // Update Navigation Highlighting
-            updateNavStyles();
-
-            // Render Content based on Tab
-            const main = document.getElementById('mainContent');
-            
-            switch(state.activeTab) {
-                case 'dashboard':
-                    main.innerHTML = renderDashboard();
-                    break;
-                case 'payments':
-                    main.innerHTML = renderPayments();
-                    break;
-                case 'roster':
-                    main.innerHTML = renderRoster();
-                    break;
-                case 'analytics':
-                    main.innerHTML = renderAnalytics();
-                    break;
-            }
-            
-            // Initialize Icons (Lucide)
-            if (window.lucide) {
-                window.lucide.createIcons();
-            }
-        }
-
-        function updateNavStyles() {
-            // Desktop
-            document.querySelectorAll('.nav-btn-desktop').forEach(btn => {
-                const isActive = btn.dataset.tab === state.activeTab;
-                btn.className = `nav-btn-desktop w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${isActive ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-slate-600 hover:bg-slate-50'}`;
-                const icon = btn.querySelector('i, svg');
-                if (icon) {
-                    if(isActive) icon.classList.add('text-red-600');
-                    else icon.classList.remove('text-red-600');
-                }
-            });
-
-            // Mobile
-            document.querySelectorAll('.nav-btn-mobile').forEach(btn => {
-                const isActive = btn.dataset.tab === state.activeTab;
-                btn.className = `nav-btn-mobile flex flex-col items-center justify-center w-full p-2 rounded-lg transition-all active-scale ${isActive ? 'text-red-600' : 'text-slate-400'}`;
-                const bg = btn.querySelector('div');
-                if (bg) {
-                    bg.className = `p-1 rounded-lg mb-1 ${isActive ? 'bg-red-50' : ''}`;
-                }
-            });
-        }
-
-        // --- Templates ---
-
-        function renderDashboard() {
-            const { totalCollected, totalPotential, percent } = helpers.getStats();
-            const payments = helpers.getCurrentPayments();
-            const recent = [...payments].sort((a,b) => b.timestamp.seconds - a.timestamp.seconds).slice(0, 5);
-
-            return `
-                <div class="space-y-6 animate-in fade-in duration-300">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-sm font-medium uppercase tracking-wider">Collected</p>
-                            <p class="text-3xl font-bold text-slate-800 mt-1">$${totalCollected}</p>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                            <p class="text-slate-500 text-sm font-medium uppercase tracking-wider">Target</p>
-                            <p class="text-3xl font-bold text-slate-400 mt-1">$${totalPotential}</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <div class="flex justify-between items-end mb-2">
-                            <h2 class="text-lg font-bold text-slate-800">Contribution Progress</h2>
-                            <span class="font-bold text-xl ${percent >= 100 ? 'text-green-600' : 'text-red-600'}">${percent}%</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-1000 ${percent >= 100 ? 'bg-green-500' : 'bg-red-600'}" style="width: ${Math.min(percent, 100)}%"></div>
-                        </div>
-                        <p class="text-sm text-slate-500 mt-2">${payments.length} out of ${state.roster.length} members have paid.</p>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-slate-100">
-                            <h2 class="text-lg font-bold text-slate-800">Recent Payments</h2>
-                        </div>
-                        <div class="divide-y divide-slate-50">
-                            ${recent.length === 0 ? '<div class="p-8 text-center text-slate-400 italic">No payments recorded this month.</div>' : ''}
-                            ${recent.map(p => `
-                                <div class="px-6 py-3 flex justify-between items-center">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getShiftColor(p.shift)}">${p.shift}</div>
-                                        <div>
-                                            <p class="font-semibold text-slate-800">${p.employeeName}</p>
-                                            <p class="text-xs text-slate-400">Paid just now</p>
-                                        </div>
-                                    </div>
-                                    <span class="font-bold text-green-600">+$${p.amount}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderPayments() {
-            const currentPayments = helpers.getCurrentPayments();
-            // Group Roster by Shift
-            const grouped = { A: [], B: [], C: [] };
-            state.roster.forEach(e => { if(grouped[e.shift]) grouped[e.shift].push(e); });
-
-            let html = `
-                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-600 mb-6 animate-in fade-in duration-300">
-                    <h2 class="text-xl font-bold text-slate-800">Log Payments</h2>
-                    <p class="text-slate-500 text-sm">Tap a crew member to toggle payment (Dues: $${state.monthlyDues}).</p>
-                </div>
-            `;
-
-            ['A', 'B', 'C'].forEach(shift => {
-                const shiftMembers = grouped[shift];
-                const shiftPaidCount = shiftMembers.filter(m => currentPayments.find(p => p.employeeId === m.id)).length;
-
-                html += `
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4 animate-in slide-in-from-bottom-2 duration-300">
-                        <div class="bg-slate-50 px-6 py-3 border-b border-slate-200 font-bold text-slate-700 flex justify-between">
-                            <span>Shift ${shift}</span>
-                            <span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600 font-normal uppercase">${shiftPaidCount} / ${shiftMembers.length} Paid</span>
-                        </div>
-                        <div class="divide-y divide-slate-100">
-                            ${shiftMembers.length === 0 ? '<div class="p-4 text-center text-slate-400 text-sm">No members in this shift.</div>' : ''}
-                            ${shiftMembers.map(emp => {
-                                const payment = currentPayments.find(p => p.employeeId === emp.id);
-                                const isPaid = !!payment;
-                                // Note: We pass payment ID if it exists so we can delete it
-                                return `
-                                    <button onclick="window.appActions.togglePayment('${emp.id}', '${emp.name}', '${emp.shift}', '${payment ? payment.id : ''}')" 
-                                        class="w-full text-left px-6 py-4 flex items-center justify-between transition-all active:bg-slate-100 ${isPaid ? 'bg-green-50/50' : 'bg-white'}">
-                                        <span class="font-semibold text-lg ${isPaid ? 'text-slate-800' : 'text-slate-500'}">${emp.name}</span>
-                                        <div class="flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${isPaid ? 'bg-green-100 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-400 shadow-sm'}">
-                                            ${isPaid 
-                                                ? `<i data-lucide="check-circle-2" class="w-5 h-5"></i><span class="font-bold text-sm">PAID</span>`
-                                                : `<div class="w-5 h-5 rounded-full border-2 border-slate-300"></div><span class="font-medium text-sm">UNPAID</span>`
-                                            }
-                                        </div>
-                                    </button>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-            });
-
-            return html;
-        }
-
-        function renderRoster() {
-            return `
-                <div class="space-y-6 animate-in fade-in duration-300">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="bg-slate-100 p-2 rounded-lg text-slate-600"><i data-lucide="dollar-sign" class="w-5 h-5"></i></div>
-                            <div>
-                                <h2 class="text-xl font-bold text-slate-800">Fund Settings</h2>
-                                <p class="text-xs text-slate-500">Monthly amount per person.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-end gap-4 max-w-md">
-                            <div class="flex-1">
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Monthly Dues ($)</label>
-                                <input type="number" id="duesInput" value="${state.monthlyDues}" class="w-full p-3 border border-slate-300 rounded-lg font-bold text-slate-800">
-                            </div>
-                            <button onclick="window.appActions.updateDues()" class="bg-slate-800 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-700 transition-colors">Save</button>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h2 class="text-xl font-bold text-slate-800 mb-4">Add Crew Member</h2>
-                        <div class="flex flex-col gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                                <input type="text" id="newName" placeholder="Ex: John Doe" class="w-full p-3 border border-slate-300 rounded-lg">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Shift</label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <button onclick="window.appActions.selectShift('A')" id="btnShiftA" class="shift-btn py-3 rounded-lg font-bold border bg-slate-800 text-white border-slate-800">A</button>
-                                    <button onclick="window.appActions.selectShift('B')" id="btnShiftB" class="shift-btn py-3 rounded-lg font-bold border bg-white text-slate-600 border-slate-200">B</button>
-                                    <button onclick="window.appActions.selectShift('C')" id="btnShiftC" class="shift-btn py-3 rounded-lg font-bold border bg-white text-slate-600 border-slate-200">C</button>
-                                </div>
-                            </div>
-                            <button onclick="window.appActions.addMember()" class="bg-red-600 text-white font-bold py-4 rounded-lg shadow-lg flex items-center justify-center gap-2 hover:bg-red-500 transition-colors">
-                                <i data-lucide="plus" class="w-5 h-5"></i> Add to Roster
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-slate-100"><h2 class="text-lg font-bold text-slate-800">Current Roster</h2></div>
-                        <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                            ${state.roster.map(emp => `
-                                <div class="px-6 py-3 flex justify-between items-center hover:bg-slate-50">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${getShiftColor(emp.shift)}">${emp.shift}</div>
-                                        <span class="font-medium text-slate-700">${emp.name}</span>
-                                    </div>
-                                    <button onclick="window.appActions.removeMember('${emp.id}')" class="text-slate-300 hover:text-red-600 p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    <div class="bg-red-50 p-6 rounded-xl shadow-sm border border-red-200 mt-8 mb-4">
-                         <div class="flex items-center gap-2 mb-2 text-red-700">
-                            <i data-lucide="alert-octagon" class="w-5 h-5"></i>
-                            <h2 class="text-lg font-bold">Danger Zone</h2>
-                        </div>
-                        <p class="text-xs text-red-600 mb-4">This will delete ALL data in the spreadsheet (Roster & Payments). Use with extreme caution.</p>
-                        <button onclick="window.appActions.masterReset()" class="w-full bg-white border border-red-500 text-red-600 font-bold py-3 rounded-lg hover:bg-red-600 hover:text-white transition-colors">Master Reset</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderAnalytics() {
-            // Stats Calculation
-            const stats = { A: {paid:0, total:0, $$:0}, B: {paid:0, total:0, $$:0}, C: {paid:0, total:0, $$:0} };
-            const currentPayments = helpers.getCurrentPayments();
-            
-            state.roster.forEach(r => stats[r.shift].total++);
-            currentPayments.forEach(p => {
-                if(stats[p.shift]) {
-                    stats[p.shift].paid++;
-                    stats[p.shift].$$ += p.amount;
-                }
-            });
-
-            const missing = state.roster.filter(r => !currentPayments.find(p => p.employeeId === r.id));
-
-            return `
-                <div class="space-y-6 animate-in fade-in duration-300">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        ${['A','B','C'].map(s => {
-                            const d = stats[s];
-                            const pct = d.total > 0 ? Math.round((d.paid/d.total)*100) : 0;
-                            const color = s === 'A' ? 'bg-red-500' : s === 'B' ? 'bg-blue-500' : 'bg-green-500';
-                            return `
-                                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
-                                    <div class="absolute top-0 left-0 w-2 h-full ${color}"></div>
-                                    <div class="pl-4">
-                                        <h3 class="text-lg font-bold text-slate-700 mb-1">Shift ${s}</h3>
-                                        <div class="flex justify-between items-end">
-                                            <div><p class="text-3xl font-bold text-slate-900">$${d.$$}</p><p class="text-xs text-slate-500 font-medium uppercase mt-1">Collected</p></div>
-                                            <div class="text-right"><p class="text-xl font-bold text-slate-400">${pct}%</p><p class="text-xs text-slate-400">Paid</p></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-red-100 bg-red-50 flex items-center gap-2">
-                            <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
-                            <h2 class="text-lg font-bold text-red-800">Unpaid Members (${missing.length})</h2>
-                        </div>
-                        <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                            ${missing.length === 0 ? '<div class="p-6 text-center text-green-600 font-bold">Everyone has paid! 🎉</div>' : ''}
-                            ${missing.map(m => `
-                                <div class="px-6 py-3 flex justify-between items-center hover:bg-slate-50">
-                                    <div><p class="font-semibold text-slate-800">${m.name}</p><span class="text-xs px-2 py-0.5 rounded font-bold bg-slate-100">Shift ${m.shift}</span></div>
-                                    <span class="text-sm font-medium text-red-500">Owning $${state.monthlyDues}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        //// --- Logic & Actions ---
-
-        function getShiftColor(shift) {
-            if(shift === 'A') return 'bg-red-100 text-red-700';
-            if(shift === 'B') return 'bg-blue-100 text-blue-700';
-            return 'bg-green-100 text-green-700';
-        }
-
-        let selectedNewShift = 'A';
-
-        // Global Action Handler
-        window.appState = {
-            setTab: (tab) => {
-                state.activeTab = tab;
-                renderApp();
-            }
-        };
-
-        window.appActions = {
-            selectShift: (shift) => {
-                selectedNewShift = shift;
-                // Quick visual toggle
-                ['A','B','C'].forEach(s => {
-                    const btn = document.getElementById(`btnShift${s}`);
-                    if(s === shift) btn.className = "shift-btn py-3 rounded-lg font-bold border bg-slate-800 text-white border-slate-800";
-                    else btn.className = "shift-btn py-3 rounded-lg font-bold border bg-white text-slate-600 border-slate-200";
-                });
-            },
-            updateDues: () => {
-                const val = document.getElementById('duesInput').value;
-                setLoading(true);
-                google.script.run.withSuccessHandler(onDataLoaded).updateSettings(val);
-            },
-            addMember: () => {
-                const name = document.getElementById('newName').value;
-                if(!name) { alert("Please enter a name"); return; }
-                
-                setLoading(true);
-                const newMember = {
-                    id: 'mem_' + Date.now(),
-                    name,
-                    shift: selectedNewShift,
-                    joinedAt: Date.now()
-                };
-                google.script.run.withSuccessHandler(onDataLoaded).addRosterMember(newMember);
-            },
-            removeMember: (id) => {
-                if(confirm('Are you sure you want to remove this member?')) {
-                    setLoading(true);
-                    google.script.run.withSuccessHandler(onDataLoaded).removeRosterMember(id);
-                }
-            },
-            togglePayment: (empId, empName, shift, existingPaymentId) => {
-                setLoading(true);
-                if(existingPaymentId) {
-                    // Remove payment
-                    google.script.run.withSuccessHandler(onDataLoaded).removePayment(existingPaymentId);
-                } else {
-                    // Add payment
-                    const newPayment = {
-                        id: 'pay_' + Date.now(),
-                        employeeId: empId,
-                        employeeName: empName,
-                        shift,
-                        amount: state.monthlyDues,
-                        monthStr: helpers.getMonthStr()
-                    };
-                    google.script.run.withSuccessHandler(onDataLoaded).addPayment(newPayment);
-                }
-            },
-            masterReset: () => {
-                if(confirm("WARNING: This will delete ALL roster and payment data from the Google Sheet. This cannot be undone.\n\nAre you sure you want to proceed?")) {
-                    setLoading(true);
-                    google.script.run.withSuccessHandler(onDataLoaded).nukeData();
-                }
-            }
-        };
-
-        // --- Event Listeners ---
-
-        document.getElementById('prevMonth').onclick = () => {
-            state.currentDate.setMonth(state.currentDate.getMonth() - 1);
-            state.currentDate = new Date(state.currentDate);
-            renderApp();
-        };
-
-        document.getElementById('nextMonth').onclick = () => {
-            state.currentDate.setMonth(state.currentDate.getMonth() + 1);
-            state.currentDate = new Date(state.currentDate);
-            renderApp();
-        };
-
-        // --- Boot ---
-        window.onload = initApp;
-
-    </script>
-</body>
-</html>
+            <button onclick="window.appState.setTab('dashboard')" class="nav-btn-mobile flex flex-col items-center justify-center w
