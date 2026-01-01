@@ -149,4 +149,74 @@ document.addEventListener('DOMContentLoaded', () => {
         // POST to Google Sheet
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors",
+            mode: "no-cors", // Important for Google Scripts
+            body: formData
+        })
+        .then(() => {
+            // Because mode is no-cors, we can't read the response JSON,
+            // so we assume success if no network error occurred.
+            
+            // Add to local list immediately
+            entries.push(newEntry);
+            save(); // Update local storage and UI
+            
+            // UI Feedback
+            statusMsg.textContent = "✅ Saved!";
+            statusMsg.className = "status-success";
+            form.reset();
+            
+            // Restore date to today
+            if (inpDate) inpDate.value = new Date().toISOString().split('T')[0];
+            
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Add Entry";
+            
+            // Clear success message
+            setTimeout(() => { statusMsg.textContent = ""; }, 3000);
+        })
+        .catch(err => {
+            console.error("Upload Error:", err);
+            statusMsg.textContent = "❌ Error Saving";
+            statusMsg.className = "status-error";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Add Entry";
+        });
+    });
+
+    if (btnUndo) {
+        btnUndo.addEventListener('click', () => {
+            if (entries.length === 0) return;
+            if (confirm("Remove the last entry? (This only deletes from local device, not Google Sheet)")) {
+                entries.pop();
+                save();
+            }
+        });
+    }
+
+    if (btnReset) {
+        btnReset.addEventListener('click', () => {
+            if (confirm("⚠ Clear ALL local data? (Google Sheet data remains safe)")) {
+                entries = [];
+                save();
+                window.location.reload();
+            }
+        });
+    }
+
+    if (btnCsv) {
+        btnCsv.addEventListener('click', () => {
+            let csvContent = "data:text/csv;charset=utf-8,Date,Name,Shift,Amount\n";
+            entries.forEach(e => {
+                csvContent += `${e.date},${e.name},${e.shift},${e.amount}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "superfund_data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+});
