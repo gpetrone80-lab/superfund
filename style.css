@@ -1,0 +1,122 @@
+:root {
+    --fire-red: #b71c1c;
+    --gold: #ffc107;
+    --charcoal: #212121;
+    --white: #ffffff;
+    --light-gray: #f5f5f5;
+}
+
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background-color: var(--light-gray); 
+    margin: 0; 
+    padding-bottom: 50px; 
+}
+
+header { 
+    background: var(--fire-red); 
+    color: white; 
+    padding: 15px; 
+    text-align: center; 
+    border-bottom: 4px solid var(--gold); 
+}
+header h1 { margin: 0; font-size: 1.4rem; text-transform: uppercase; }
+
+.container { max-width: 600px; margin: 15px auto; padding: 0 15px; }
+
+.card { 
+    background: var(--white); 
+    border-radius: 8px; 
+    padding: 15px; 
+    margin-bottom: 15px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+}
+
+h2 { 
+    margin-top: 0; 
+    font-size: 1.1rem; 
+    color: var(--charcoal); 
+    border-bottom: 2px solid #eee; 
+    padding-bottom: 5px; 
+    margin-bottom: 15px; 
+}
+
+/* Inputs */
+.form-group { margin-bottom: 12px; }
+label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
+input { 
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid #ccc; 
+    border-radius: 4px; 
+    font-size: 16px; 
+    box-sizing: border-box; 
+}
+
+/* Dashboard Stats - Main */
+.stats-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.stat-box { 
+    flex: 1; 
+    background: var(--charcoal); 
+    color: var(--gold); 
+    padding: 15px; 
+    border-radius: 6px; 
+    text-align: center; 
+}
+.stat-val { display: block; font-size: 1.5rem; font-weight: bold; }
+.stat-lbl { font-size: 0.75rem; text-transform: uppercase; color: white; opacity: 0.8; }
+
+/* Dashboard Stats - Shift Breakdown */
+.shift-stats-row { display: flex; gap: 5px; margin-bottom: 15px; }
+.shift-box { 
+    flex: 1; 
+    background: #333; 
+    color: white; 
+    padding: 8px; 
+    border-radius: 4px; 
+    text-align: center; 
+    border: 1px solid #555; 
+}
+.shift-val { display: block; font-size: 1rem; font-weight: bold; color: var(--gold); }
+.shift-lbl { font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; }
+
+/* Buttons */
+.btn { 
+    width: 100%; 
+    padding: 12px; 
+    border: none; 
+    border-radius: 4px; 
+    font-size: 1rem; 
+    font-weight: bold; 
+    cursor: pointer; 
+    margin-bottom: 8px; 
+    text-transform: uppercase; 
+}
+.btn-add { background: var(--fire-red); color: white; }
+.btn-add:disabled { background: #e57373; cursor: not-allowed; } 
+.btn-undo { background: var(--gold); color: black; }
+.btn-csv { background: var(--charcoal); color: white; }
+.btn-reset { 
+    background: transparent; 
+    border: 2px solid var(--fire-red); 
+    color: var(--fire-red); 
+    margin-top: 10px; 
+}
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th { text-align: left; background: #eee; padding: 8px; border-bottom: 2px solid #ddd; }
+td { padding: 8px; border-bottom: 1px solid #eee; }
+
+/* Status Bar */
+#statusMsg { 
+    text-align: center; 
+    font-size: 0.8rem; 
+    margin-bottom: 10px; 
+    min-height: 1.2em; 
+    font-weight: bold; 
+}
+.status-syncing { color: var(--gold); }
+.status-success { color: green; }
+.status-error { color: red; }
