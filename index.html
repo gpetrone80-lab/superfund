@@ -131,9 +131,9 @@
 
 <script>
     // ---------------------------------------------------------
-    // ⚠️ PASTE YOUR GOOGLE WEB APP URL INSIDE THE QUOTES BELOW
+    // FIXED: Your URL is now correctly inserted inside quotes
     // ---------------------------------------------------------
-    const GOOGLE_SCRIPT_URL = "PASTE_YOUR_WEB_APP_URL_HERE"; 
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYuO3pbIAhk93DGmAY1ARLIyVYbkqnW1ir--zcNO5cwyPde3wp5q7y4iPF7f5cS0_a/exec"; 
     // ---------------------------------------------------------
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -184,8 +184,9 @@
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             
-            if (GOOGLE_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbzPbAjnrKi_A2iayVF-nqIHqJqyHOGBeFws2_BQz9VwTq2sMMcPREM9Tw681ETuZSZH/exec") {
-                alert("⚠️ Error: You forgot to paste your Google Script URL in the code!");
+            // FIXED: Logic check now correctly handles the variable
+            if (GOOGLE_SCRIPT_URL === "PASTE_YOUR_WEB_APP_URL_HERE" || GOOGLE_SCRIPT_URL === "") {
+                alert("⚠️ Error: The Google Script URL is missing!");
                 return;
             }
 
@@ -203,14 +204,21 @@
                 amount: inpAmount.value
             };
 
-            // 2. Send to Google Sheets (fetch)
+            // 2. Send to Google Sheets (Corrected for no-cors)
+            // Using URLSearchParams ensures data is sent as form fields, not JSON body
+            const formData = new URLSearchParams();
+            formData.append("date", newEntry.date);
+            formData.append("name", newEntry.name);
+            formData.append("shift", newEntry.shift);
+            formData.append("amount", newEntry.amount);
+
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
-                mode: "no-cors", // Important for simple Google Script posts
+                mode: "no-cors", 
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/x-www-form-urlencoded"
                 },
-                body: JSON.stringify(newEntry)
+                body: formData.toString()
             })
             .then(() => {
                 // 3. Success: Save Locally
